@@ -228,6 +228,23 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
   });
 });
 
+
+// ── PAGE ROUTES ───────────────────────────────────────────────────────────────
+const PAGES = {
+  '/welcome':       'welcome.html',
+  '/admin':         'admin.html',
+  '/quest-forest':  'quest-forest.html',
+  '/quest-huette':  'quest-huette.html',
+  '/quest-bit':     'quest-bit.html',
+  '/quest-marzili': 'quest-marzili.html',
+  '/quest-olymp':   'quest-olymp.html',
+};
+Object.entries(PAGES).forEach(([route, file]) => {
+  app.get(route, (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/public', file));
+  });
+});
+
 // ── CATCH ALL ─────────────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/public/index.html'));

@@ -5,18 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Scrum Adventure</title>
 <style>
-  body { margin:0; font-family:sans-serif; background:#0e1621; color:white; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  .box { text-align:center; }
-  h1 { font-size:2rem; color:#fde68a; margin-bottom:1rem; }
-  a { display:inline-block; margin:8px; padding:12px 28px; background:#1d4ed8; color:white; border-radius:50px; text-decoration:none; font-weight:700; }
-  a:hover { background:#2563eb; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Segoe UI',sans-serif;
+    background:linear-gradient(135deg,#0a1628 0%,#0e2040 50%,#0a1628 100%);
+    color:white; min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .box { text-align:center; padding:40px 20px; }
+  .emoji { font-size:3.5rem; display:block; margin-bottom:16px; animation:bounce 2s ease-in-out infinite alternate; }
+  @keyframes bounce { from{transform:translateY(0);} to{transform:translateY(-10px);} }
+  h1 { font-size:2.2rem; color:#fde68a; margin-bottom:8px; letter-spacing:0.02em; }
+  p  { color:#94a3b8; margin-bottom:32px; font-size:1rem; }
+  .buttons { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  a {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:14px 32px; border-radius:50px; text-decoration:none;
+    font-weight:700; font-size:1rem; transition:all 0.2s;
+  }
+  a.primary { background:linear-gradient(135deg,#1d4ed8,#1e3a8a); color:white; box-shadow:0 4px 20px rgba(59,130,246,0.3); }
+  a.primary:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(59,130,246,0.4); }
+  a.secondary { background:rgba(255,255,255,0.06); color:#94a3b8; border:1px solid rgba(255,255,255,0.12); }
+  a.secondary:hover { background:rgba(255,255,255,0.1); color:white; }
 </style>
 </head>
 <body>
 <div class="box">
-  <h1>🌲 Scrum Adventure</h1>
-  <a href="/welcome">Spiel starten</a>
-  <a href="/admin">Admin</a>
+  <span class="emoji">🌲</span>
+  <h1>Scrum Adventure</h1>
+  <p>Das interaktive Scrum-Abenteuer für dein Team</p>
+  <div class="buttons">
+    <a href="/welcome" class="primary">🎒 Spiel starten</a>
+    <a href="/admin"   class="secondary">🎮 Spielleiter</a>
+  </div>
 </div>
 </body>
 </html>
