@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scrum Adventure – Spielleiter</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Nunito:wght@600;700;800;900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0a1018;
+  --panel:  #111a26;
+  --card:   #162030;
+  --border: rgba(100,160,255,0.18);
+  --blue:   #3b82f6;
+  --gold:   #fbbf24;
+  --green:  #34d399;
+  --red:    #f87171;
+  --dim:    #6b7fa0;
+  --text:   #e2eaf8;
+  --suv:    #3b82f6;
+  --val:    #f59e0b;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif; min-height:100vh; }
+
+/* ── LOGIN ── */
+#login-screen {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%, rgba(59,130,246,0.08) 0%, transparent 60%),var(--bg);
+}
+.login-card {
+  background:var(--panel); border:1.5px solid var(--border); border-radius:20px;
+  padding:40px 36px; width:min(400px,90vw);
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+.login-title { font-family:'Syne',sans-serif; font-size:1.5rem; color:var(--gold); margin-bottom:4px; }
+.login-sub { font-size:0.82rem; color:var(--dim); margin-bottom:24px; }
+.form-group { margin-bottom:14px; }
+.form-group label { display:block; font-size:0.75rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--dim); margin-bottom:6px; }
+.form-group input {
+  width:100%; padding:12px 14px; border-radius:12px;
+  background:rgba(0,0,0,0.3); border:1.5px solid var(--border); color:var(--text);
+  font-family:'Nunito',sans-serif; font-size:0.95rem; outline:none; transition:border 0.2s;
+}
+.form-group input:focus { border-color:var(--blue); }
+.btn-primary {
+  width:100%; padding:13px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#1d4ed8,#1e3a8a); color:white;
+  font-family:'Nunito',sans-serif; font-weight:900; font-size:1rem;
+  cursor:pointer; transition:all 0.2s; margin-top:6px;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(59,130,246,0.3); }
+.login-err { color:var(--red); font-size:0.82rem; margin-top:8px; display:none; }
+
+/* ── APP ── */
+#app { display:none; min-height:100vh; }
+
+/* Sidebar */
+.sidebar {
+  position:fixed; top:0; left:0; width:220px; height:100vh;
+  background:var(--panel); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:100; overflow-y:auto;
+}
+.sidebar-logo {
+  padding:24px 20px 16px;
+  font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; color:var(--gold);
+  border-bottom:1px solid var(--border);
+}
+.sidebar-logo span { display:block; font-size:0.72rem; color:var(--dim); font-family:'Nunito',sans-serif; font-weight:600; margin-top:2px; }
+.nav-item {
+  display:flex; align-items:center; gap:10px; padding:12px 20px;
+  cursor:pointer; font-size:0.88rem; font-weight:700; color:var(--dim);
+  transition:all 0.2s; border-left:3px solid transparent;
+}
+.nav-item:hover { color:var(--text); background:rgba(59,130,246,0.06); }
+.nav-item.active { color:var(--blue); background:rgba(59,130,246,0.1); border-left-color:var(--blue); }
+.nav-icon { font-size:1.1rem; width:20px; text-align:center; }
+.sidebar-logout { margin-top:auto; padding:16px 20px; }
+.btn-logout {
+  width:100%; padding:10px; border:1px solid var(--border); border-radius:10px;
+  background:transparent; color:var(--dim); font-family:'Nunito',sans-serif;
+  font-weight:700; font-size:0.82rem; cursor:pointer; transition:all 0.2s;
+}
+.btn-logout:hover { border-color:var(--red); color:var(--red); }
+
+/* Main content */
+.main-content { margin-left:220px; padding:28px 32px; min-height:100vh; }
+.page-title {
+  font-family:'Syne',sans-serif; font-weight:800; font-size:1.6rem;
+  color:var(--text); margin-bottom:4px;
+}
+.page-sub { font-size:0.82rem; color:var(--dim); margin-bottom:24px; }
+
+/* Stats grid */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; margin-bottom:24px; }
+.stat-card {
+  background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px;
+  text-align:center;
+}
+.stat-num { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:var(--gold); }
+.stat-label { font-size:0.72rem; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim); margin-top:4px; }
+
+/* Table */
+.table-wrap { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-bottom:20px; }
+.table-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.table-header-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; }
+.search-box {
+  padding:8px 14px; border-radius:10px; background:rgba(0,0,0,0.3);
+  border:1px solid var(--border); color:var(--text); font-family:'Nunito',sans-serif;
+  font-size:0.85rem; outline:none; width:200px;
+}
+.search-box:focus { border-color:var(--blue); }
+.filter-select {
+  padding:8px 12px; border-radius:10px; background:rgba(0,0,0,0.3);
+  border:1px solid var(--border); color:var(--text); font-family:'Nunito',sans-serif;
+  font-size:0.85rem; outline:none; cursor:pointer;
+}
+
+table { width:100%; border-collapse:collapse; }
+thead tr { background:rgba(59,130,246,0.06); }
+th { padding:11px 16px; font-size:0.7rem; font-weight:900; letter-spacing:0.12em; text-transform:uppercase; color:var(--dim); text-align:left; }
+td { padding:12px 16px; font-size:0.86rem; border-top:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+tr:hover td { background:rgba(255,255,255,0.02); }
+
+.team-pill {
+  display:inline-block; padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:800;
+}
+.team-suv { background:rgba(59,130,246,0.15); color:#93c5fd; }
+.team-val { background:rgba(245,158,11,0.15); color:#fde68a; }
+
+.quest-badges { display:flex; gap:4px; flex-wrap:wrap; }
+.qb { font-size:0.65rem; padding:2px 7px; border-radius:10px; font-weight:700; }
+.qb-done { background:rgba(52,211,153,0.15); color:#6ee7b7; }
+.qb-todo { background:rgba(255,255,255,0.06); color:var(--dim); }
+
+.sp-badge {
+  font-family:'Courier Prime',monospace; font-weight:700; font-size:0.9rem;
+  color:var(--gold);
+}
+
+/* Action buttons */
+.action-btns { display:flex; gap:6px; }
+.btn-action {
+  padding:5px 12px; border-radius:8px; font-size:0.75rem; font-weight:800;
+  cursor:pointer; transition:all 0.15s; border:1px solid;
+}
+.btn-reset { border-color:rgba(251,191,36,0.4); color:var(--gold); background:rgba(251,191,36,0.08); }
+.btn-reset:hover { background:rgba(251,191,36,0.18); }
+.btn-edit  { border-color:rgba(59,130,246,0.4); color:#93c5fd; background:rgba(59,130,246,0.08); }
+.btn-edit:hover  { background:rgba(59,130,246,0.18); }
+.btn-delete{ border-color:rgba(248,113,113,0.4); color:var(--red); background:rgba(248,113,113,0.06); }
+.btn-delete:hover{ background:rgba(248,113,113,0.16); }
+
+/* Modal */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+  z-index:500; display:none; align-items:center; justify-content:center;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:var(--panel); border:1.5px solid var(--border); border-radius:20px;
+  padding:28px 26px; width:min(460px,90vw);
+  animation:mPop 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes mPop { from{opacity:0;transform:scale(0.85);} to{opacity:1;transform:scale(1);} }
+.modal-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800; margin-bottom:4px; }
+.modal-sub { font-size:0.8rem; color:var(--dim); margin-bottom:20px; }
+.modal-footer { display:flex; gap:10px; margin-top:20px; justify-content:flex-end; }
+.btn-cancel { padding:10px 22px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--dim); font-family:'Nunito',sans-serif; font-weight:700; cursor:pointer; }
+.btn-cancel:hover { border-color:var(--text); color:var(--text); }
+.btn-confirm { padding:10px 22px; border:none; border-radius:10px; font-family:'Nunito',sans-serif; font-weight:900; cursor:pointer; }
+.btn-confirm.danger { background:var(--red); color:white; }
+.btn-confirm.warn   { background:var(--gold); color:#000; }
+.btn-confirm.ok     { background:var(--blue); color:white; }
+
+/* Leaderboard */
+.lb-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:600px){ .lb-grid{ grid-template-columns:1fr; } }
+.lb-team-card { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.lb-team-header { padding:12px 16px; font-weight:900; font-size:0.82rem; letter-spacing:0.1em; text-transform:uppercase; }
+.lb-team-header.suv { background:rgba(59,130,246,0.12); color:#93c5fd; }
+.lb-team-header.val { background:rgba(245,158,11,0.12); color:#fde68a; }
+.lb-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-top:1px solid rgba(255,255,255,0.04); }
+.lb-rank { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:900; background:rgba(255,255,255,0.08); color:var(--dim); }
+.lb-rank.gold   { background:rgba(251,191,36,0.2); color:var(--gold); }
+.lb-rank.silver { background:rgba(200,200,200,0.1); color:#d1d5db; }
+.lb-rank.bronze { background:rgba(180,120,60,0.15); color:#d97706; }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:24px; right:24px; z-index:999;
+  background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  padding:12px 20px; font-size:0.85rem; font-weight:700;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  transform:translateY(60px); opacity:0; transition:all 0.3s;
+  pointer-events:none;
+}
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.ok   { border-color:rgba(52,211,153,0.4); color:var(--green); }
+.toast.err  { border-color:rgba(248,113,113,0.4); color:var(--red); }
+
+/* Loading */
+.loading { text-align:center; padding:40px; color:var(--dim); font-style:italic; }
+
+/* Page views */
+.view { display:none; }
+.view.active { display:block; }
+
+@media(max-width:768px){
+  .sidebar { width:60px; }
+  .sidebar-logo, .nav-item span, .sidebar-logout .btn-logout { display:none; }
+  .nav-item { justify-content:center; padding:14px; }
+  .main-content { margin-left:60px; padding:20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-title">🎮 Spielleiter-Tool</div>
+    <div class="login-sub">Scrum Adventure — Admin Panel</div>
+    <div class="form-group">
+      <label>Benutzername</label>
+      <input type="text" id="login-user" value="admin" placeholder="admin">
+    </div>
+    <div class="form-group">
+      <label>Passwort</label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">🔐 Einloggen</button>
+    <div class="login-err" id="login-err">Falsches Passwort oder Benutzername.</div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      🌲 Scrum Adventure<span>Spielleiter-Panel</span>
+    </div>
+    <div class="nav-item active" onclick="showView('overview')" id="nav-overview">
+      <span class="nav-icon">📊</span><span>Übersicht</span>
+    </div>
+    <div class="nav-item" onclick="showView('players')" id="nav-players">
+      <span class="nav-icon">👥</span><span>Spieler</span>
+    </div>
+    <div class="nav-item" onclick="showView('leaderboard')" id="nav-leaderboard">
+      <span class="nav-icon">🏆</span><span>Rangliste</span>
+    </div>
+    <div class="sidebar-logout">
+      <button class="btn-logout" onclick="doLogout()">🚪 Ausloggen</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- ── OVERVIEW ── -->
+    <div class="view active" id="view-overview">
+      <div class="page-title">📊 Übersicht</div>
+      <div class="page-sub">Spielstand auf einen Blick</div>
+      <div class="stats-grid" id="stats-grid">
+        <div class="loading">Lade…</div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><div class="table-header-title">Quest-Abschlüsse</div></div>
+        <table>
+          <thead><tr><th>Quest</th><th>Abgeschlossen</th></tr></thead>
+          <tbody id="quest-stats-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── PLAYERS ── -->
+    <div class="view" id="view-players">
+      <div class="page-title">👥 Spieler verwalten</div>
+      <div class="page-sub">Spielstände zurücksetzen, Teams ändern, Spieler löschen</div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-header-title" id="player-count">Spieler</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input class="search-box" id="player-search" placeholder="🔍 Suchen…" oninput="filterPlayers()">
+            <select class="filter-select" id="team-filter" onchange="filterPlayers()">
+              <option value="">Alle Teams</option>
+              <option value="Team Suvretta">Team Suvretta</option>
+              <option value="Team Valletta">Team Valletta</option>
+            </select>
+          </div>
+        </div>
+        <div id="players-loading" class="loading">Lade Spieler…</div>
+        <table id="players-table" style="display:none;">
+          <thead>
+            <tr>
+              <th>Name</th><th>Team</th><th>Begleiter</th>
+              <th>Quests</th><th>Total SP</th><th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="players-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── LEADERBOARD ── -->
+    <div class="view" id="view-leaderboard">
+      <div class="page-title">🏆 Rangliste</div>
+      <div class="page-sub">Top 3 pro Team nach Story Points</div>
+      <div class="lb-grid" id="lb-grid"><div class="loading">Lade…</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<!-- Edit Player -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title">✏️ Spieler bearbeiten</div>
+    <div class="modal-sub">Name, Team und Begleiter ändern</div>
+    <input type="hidden" id="edit-id">
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Name</label>
+      <input type="text" id="edit-name" class="search-box" style="width:100%;padding:10px 12px;">
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Team</label>
+      <select id="edit-team" class="filter-select" style="width:100%;padding:10px 12px;">
+        <option value="Team Suvretta">Team Suvretta</option>
+        <option value="Team Valletta">Team Valletta</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label>Begleiter</label>
+      <select id="edit-char" class="filter-select" style="width:100%;padding:10px 12px;">
+        <option value="biber">🦫 Beveretta (Suvretta)</option>
+        <option value="eich">🐿️ Squirletta (Valletta)</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-edit')">Abbrechen</button>
+      <button class="btn-confirm ok" onclick="saveEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Progress -->
+<div class="modal-overlay" id="modal-reset">
+  <div class="modal">
+    <div class="modal-title">🔄 Spielstand zurücksetzen</div>
+    <div class="modal-sub" id="reset-sub">Was soll zurückgesetzt werden?</div>
+    <input type="hidden" id="reset-id">
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:10px;">
+        <input type="radio" name="reset-type" value="all" checked> <span>Gesamten Spielstand löschen (alle Quests)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:10px;">
+        <input type="radio" name="reset-type" value="quest"> <span>Einzelnen Quest zurücksetzen:</span>
+        <select id="reset-quest-select" class="filter-select" style="flex:1;">
+          <option value="forest">🌲 Scrum-Baum</option>
+          <option value="huette">🏔️ Zollhütte</option>
+          <option value="bit">🏛️ BIT Zollikofen</option>
+          <option value="marzili">🍦 Marzili</option>
+          <option value="olymp">⚡ Olymp-Tor</option>
+        </select>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-reset')">Abbrechen</button>
+      <button class="btn-confirm warn" onclick="confirmReset()">🔄 Zurücksetzen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Player -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal">
+    <div class="modal-title">🗑️ Spieler löschen</div>
+    <div class="modal-sub" id="delete-sub">Wirklich löschen?</div>
+    <input type="hidden" id="delete-id">
+    <p style="font-size:0.85rem;color:var(--dim);line-height:1.6;">
+      Der Spieler und alle zugehörigen Fortschrittsdaten werden dauerhaft gelöscht.<br>
+      Diese Aktion kann nicht rückgängig gemacht werden.
+    </p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-delete')">Abbrechen</button>
+      <button class="btn-confirm danger" onclick="confirmDelete()">🗑️ Löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api';
+let token = sessionStorage.getItem('admin_token') || '';
+let allPlayers = [];
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  try {
+    const resp = await fetch(API + '/admin/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username:u, password:p })
+    });
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    token = data.token;
+    sessionStorage.setItem('admin_token', token);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadAll();
+  } catch {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('admin_token');
+  token = '';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// Auto-login if token stored
+if (token) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadAll();
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+// ── LOAD ALL DATA ─────────────────────────────────────────────────────────
+async function loadAll() {
+  await Promise.all([loadStats(), loadPlayers(), loadLeaderboard()]);
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const resp = await fetch(API + '/admin/stats', { headers:{'Authorization':'Bearer '+token} });
+    const data = await resp.json();
+
+    const grid = document.getElementById('stats-grid');
+    grid.innerHTML = `
+      <div class="stat-card"><div class="stat-num">${data.total_players}</div><div class="stat-label">Spieler Total</div></div>
+      ${data.by_team.map(t => `
+        <div class="stat-card">
+          <div class="stat-num" style="color:${t.team.includes('Suv')?'#93c5fd':'#fde68a'}">${t.count}</div>
+          <div class="stat-label">${t.team}</div>
+        </div>`).join('')}
+    `;
+
+    const questNames = { forest:'🌲 Scrum-Baum', huette:'🏔️ Zollhütte', bit:'🏛️ BIT', marzili:'🍦 Marzili', olymp:'⚡ Olymp' };
+    const tbody = document.getElementById('quest-stats-body');
+    tbody.innerHTML = data.completions.map(c => `
+      <tr>
+        <td>${questNames[c.quest] || c.quest}</td>
+        <td><span style="font-weight:800;color:var(--green);">${c.done}</span> Spieler</td>
+      </tr>`).join('') || '<tr><td colspan="2" style="color:var(--dim);text-align:center;">Noch keine Daten</td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+// ── PLAYERS ───────────────────────────────────────────────────────────────
+async function loadPlayers() {
+  try {
+    const resp = await fetch(API + '/admin/players', { headers:{'Authorization':'Bearer '+token} });
+    allPlayers = await resp.json();
+    renderPlayers(allPlayers);
+  } catch(e) { document.getElementById('players-loading').textContent = 'Fehler beim Laden.'; }
+}
+
+function renderPlayers(players) {
+  const loading = document.getElementById('players-loading');
+  const table   = document.getElementById('players-table');
+  const tbody   = document.getElementById('players-body');
+  const count   = document.getElementById('player-count');
+
+  loading.style.display = 'none';
+  table.style.display   = 'table';
+  count.textContent = `Spieler (${players.length})`;
+
+  const questKeys = ['forest','huette','bit','marzili','olymp'];
+  const questIcons = { forest:'🌲', huette:'🏔️', bit:'🏛️', marzili:'🍦', olymp:'⚡' };
+
+  tbody.innerHTML = players.map(p => {
+    const teamClass = p.team.includes('Suv') ? 'team-suv' : 'team-val';
+    const progress = p.progress_detail || [];
+    const questBadges = questKeys.map(k => {
+      const q = progress.find(x => x.quest === k);
+      const done = q && q.completed;
+      return `<span class="qb ${done?'qb-done':'qb-todo'}" title="${k}">${questIcons[k]}${done?' ✓':''}</span>`;
+    }).join('');
+    const charIcon = p.char_type === 'biber' ? '🦫' : '🐿️';
+    return `<tr>
+      <td style="font-weight:800;">${p.name}</td>
+      <td><span class="team-pill ${teamClass}">${p.team}</span></td>
+      <td>${charIcon} ${p.char_type === 'biber' ? 'Beveretta' : 'Squirletta'}</td>
+      <td><div class="quest-badges">${questBadges}</div></td>
+      <td><span class="sp-badge">${p.total_sp} SP</span></td>
+      <td>
+        <div class="action-btns">
+          <button class="btn-action btn-edit"   onclick="openEdit(${p.id},'${p.name}','${p.team}','${p.char_type}')">✏️ Edit</button>
+          <button class="btn-action btn-reset"  onclick="openReset(${p.id},'${p.name}')">🔄 Reset</button>
+          <button class="btn-action btn-delete" onclick="openDelete(${p.id},'${p.name}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:24px;">Keine Spieler gefunden</td></tr>';
+}
+
+function filterPlayers() {
+  const search = document.getElementById('player-search').value.toLowerCase();
+  const team   = document.getElementById('team-filter').value;
+  const filtered = allPlayers.filter(p =>
+    (!search || p.name.toLowerCase().includes(search)) &&
+    (!team   || p.team === team)
+  );
+  renderPlayers(filtered);
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────
+function openEdit(id, name, team, char_type) {
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = name;
+  document.getElementById('edit-team').value = team;
+  document.getElementById('edit-char').value = char_type;
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+async function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const name = document.getElementById('edit-name').value.trim();
+  const team = document.getElementById('edit-team').value;
+  const char_type = document.getElementById('edit-char').value;
+  try {
+    const resp = await fetch(`${API}/admin/players/${id}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ name, team, char_type })
+    });
+    if (!resp.ok) throw new Error();
+    closeModal('modal-edit');
+    showToast('✅ Spieler gespeichert');
+    loadAll();
+  } catch { showToast('❌ Fehler beim Speichern','err'); }
+}
+
+function openReset(id, name) {
+  document.getElementById('reset-id').value = id;
+  document.getElementById('reset-sub').textContent = `Spielstand für "${name}" zurücksetzen`;
+  document.getElementById('modal-reset').classList.add('open');
+}
+
+async function confirmReset() {
+  const id = document.getElementById('reset-id').value;
+  const type = document.querySelector('input[name="reset-type"]:checked').value;
+  const quest = type === 'quest' ? document.getElementById('reset-quest-select').value : null;
+  try {
+    const resp = await fetch(`${API}/admin/players/${id}/reset`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify(quest ? { quest } : {})
+    });
+    if (!resp.ok) throw new Error();
+    closeModal('modal-reset');
+    showToast('🔄 Spielstand zurückgesetzt');
+    loadAll();
+  } catch { showToast('❌ Fehler beim Zurücksetzen','err'); }
+}
+
+function openDelete(id, name) {
+  document.getElementById('delete-id').value = id;
+  document.getElementById('delete-sub').textContent = `Spieler "${name}" wirklich löschen?`;
+  document.getElementById('modal-delete').classList.add('open');
+}
+
+async function confirmDelete() {
+  const id = document.getElementById('delete-id').value;
+  try {
+    const resp = await fetch(`${API}/admin/players/${id}`, {
+      method:'DELETE', headers:{'Authorization':'Bearer '+token}
+    });
+    if (!resp.ok) throw new Error();
+    closeModal('modal-delete');
+    showToast('🗑️ Spieler gelöscht');
+    loadAll();
+  } catch { showToast('❌ Fehler beim Löschen','err'); }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
+});
+
+// ── LEADERBOARD ───────────────────────────────────────────────────────────
+async function loadLeaderboard() {
+  try {
+    const resp = await fetch(API + '/leaderboard');
+    const all  = await resp.json();
+    const grid = document.getElementById('lb-grid');
+    const medals = ['gold','silver','bronze'];
+    const medalsEmoji = ['🥇','🥈','🥉'];
+
+    const teams = {
+      'Team Suvretta': { cls:'suv', players: all.filter(p=>p.team==='Team Suvretta').slice(0,3) },
+      'Team Valletta': { cls:'val', players: all.filter(p=>p.team==='Team Valletta').slice(0,3) },
+    };
+
+    grid.innerHTML = Object.entries(teams).map(([name, t]) => `
+      <div class="lb-team-card">
+        <div class="lb-team-header ${t.cls}">${name}</div>
+        ${t.players.length ? t.players.map((p,i) => `
+          <div class="lb-row">
+            <div class="lb-rank ${medals[i]||''}">${medalsEmoji[i]||i+1}</div>
+            <div style="flex:1;font-weight:800;">${p.name}</div>
+            <div style="font-family:'Courier Prime',monospace;font-weight:700;color:var(--gold);">${p.total_sp} SP</div>
+          </div>`).join('') :
+          '<div style="padding:16px;color:var(--dim);font-size:0.82rem;text-align:center;">Noch keine Einträge</div>'
+        }
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+</script>
+</body>
+</html>

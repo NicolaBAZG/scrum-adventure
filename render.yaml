@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: scrum-adventure
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        value: spielleiter2025
+      - key: DB_PATH
+        value: /opt/render/project/src/backend/db.json

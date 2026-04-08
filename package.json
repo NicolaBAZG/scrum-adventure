@@ -1,0 +1,13 @@
+{
+  "name": "scrum-adventure",
+  "version": "1.0.0",
+  "description": "Scrum Adventure Game",
+  "scripts": {
+    "start": "cd backend && node server.js",
+    "dev":   "cd backend && npm run dev",
+    "install:all": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
