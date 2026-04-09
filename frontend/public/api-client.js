@@ -12,10 +12,20 @@
     olymp:   '/quest-olymp',
   };
 
-  function getPlayer()    { try { return JSON.parse(localStorage.getItem('sa_player') || 'null'); } catch { return null; } }
-  function setPlayer(p)   { localStorage.setItem('sa_player', JSON.stringify(p)); }
-  function getProgress()  { try { return JSON.parse(localStorage.getItem('sa_progress') || '[]'); } catch { return []; } }
-  function setProgress(p) { localStorage.setItem('sa_progress', JSON.stringify(p)); }
+  // ── PER-PLAYER STORAGE KEYS ────────────────────────────────────────────────
+  // Each player gets their own localStorage key so multiple players can play
+  // on the same device/browser simultaneously without overwriting each other.
+  function _activeKey() {
+    // The currently active player name is tracked in sessionStorage (tab-scoped)
+    return sessionStorage.getItem('sa_active_player') || '';
+  }
+  function _playerKey()   { return 'sa_player__' + _activeKey(); }
+  function _progressKey() { return 'sa_progress__' + _activeKey(); }
+
+  function getPlayer()    { try { return JSON.parse(localStorage.getItem(_playerKey()) || 'null'); } catch { return null; } }
+  function setPlayer(p)   { localStorage.setItem(_playerKey(), JSON.stringify(p)); }
+  function getProgress()  { try { return JSON.parse(localStorage.getItem(_progressKey()) || '[]'); } catch { return []; } }
+  function setProgress(p) { localStorage.setItem(_progressKey(), JSON.stringify(p)); }
 
   function getQuestRow(quest) {
     return getProgress().find(p => p.quest === quest) || { quest, errors: 0, completed: false, final_sp: null };
@@ -85,6 +95,9 @@
 
   // ── LOGIN / RESUME ─────────────────────────────────────────────────────────
   async function login(name, team, char_type) {
+    // Set active player in sessionStorage BEFORE calling getProgress/setPlayer
+    sessionStorage.setItem('sa_active_player', name);
+
     const resp = await fetch(API + '/players/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, team, char_type })

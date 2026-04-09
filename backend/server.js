@@ -150,7 +150,20 @@ app.get('/api/leaderboard', (req, res) => {
   const result = db.players.map(p => {
     const prog = db.progress.filter(x => x.player_id === p.id);
     return playerWithSP(p, prog);
-  }).sort((a, b) => b.total_sp - a.total_sp);
+  })
+  .filter(p => p.quests_done >= 5)  // Only show players who completed ALL quests
+  .sort((a, b) => b.total_sp - a.total_sp);
+  res.json(result);
+});
+
+// Returns all players with their quest progress summary (used for welcome player selection)
+app.get('/api/players/status', (req, res) => {
+  const db = readDB();
+  const result = db.players.map(p => {
+    const prog = db.progress.filter(x => x.player_id === p.id);
+    const pw = playerWithSP(p, prog);
+    return { id: pw.id, name: pw.name, team: pw.team, char_type: pw.char_type, quests_done: pw.quests_done };
+  });
   res.json(result);
 });
 

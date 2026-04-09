@@ -12,6 +12,10 @@ window.addEventListener('DOMContentLoaded', function() {
   var name      = localStorage.getItem('adventure_name') || sessionStorage.getItem('adventure_name') || '';
   sessionStorage.setItem('adventure_char', char_type);
   sessionStorage.setItem('adventure_name', name);
+  // Ensure sa_active_player is set so per-player storage keys work correctly
+  if (name && !sessionStorage.getItem('sa_active_player')) {
+    sessionStorage.setItem('sa_active_player', name);
+  }
 });
 </script>
 
