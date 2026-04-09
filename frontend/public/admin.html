@@ -479,11 +479,22 @@ async function loadStats() {
 
 // ── PLAYERS ───────────────────────────────────────────────────────────────
 async function loadPlayers() {
+  const loading = document.getElementById('players-loading');
+  if (loading) loading.style.display = 'block';
+  const table = document.getElementById('players-table');
+  if (table) table.style.display = 'none';
   try {
     const resp = await fetch(API + '/admin/players', { headers:{'Authorization':'Bearer '+token} });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({error: resp.statusText}));
+      throw new Error(err.error || resp.statusText);
+    }
     allPlayers = await resp.json();
     renderPlayers(allPlayers);
-  } catch(e) { document.getElementById('players-loading').textContent = 'Fehler beim Laden.'; }
+  } catch(e) {
+    console.error('loadPlayers error:', e);
+    if (loading) { loading.style.display = 'block'; loading.textContent = 'Fehler: ' + e.message; }
+  }
 }
 
 function renderPlayers(players) {
@@ -496,34 +507,55 @@ function renderPlayers(players) {
   table.style.display   = 'table';
   count.textContent = `Spieler (${players.length})`;
 
-  const questKeys = ['forest','huette','bit','marzili','olymp'];
+  const questKeys  = ['forest','huette','bit','marzili','olymp'];
   const questIcons = { forest:'🌲', huette:'🏔️', bit:'🏛️', marzili:'🍦', olymp:'⚡' };
 
+  if (!players.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:28px;">Keine Spieler gefunden</td></tr>';
+    return;
+  }
+
   tbody.innerHTML = players.map(p => {
-    const teamClass = p.team.includes('Suv') ? 'team-suv' : 'team-val';
-    const progress = p.progress_detail || [];
+    const teamClass = p.team && p.team.includes('Suv') ? 'team-suv' : 'team-val';
+    const progress  = p.progress_detail || [];
     const questBadges = questKeys.map(k => {
       const q = progress.find(x => x.quest === k);
       const done = q && q.completed;
-      return `<span class="qb ${done?'qb-done':'qb-todo'}" title="${k}">${questIcons[k]}${done?' ✓':''}</span>`;
+      const sp   = done ? (q.final_sp !== null ? q.final_sp + 'SP' : '?SP') : '';
+      return `<span class="qb ${done?'qb-done':'qb-todo'}" title="${k}${done?' ('+sp+')':''}">${questIcons[k]}${done?' ✓':''}</span>`;
     }).join('');
     const charIcon = p.char_type === 'biber' ? '🦫' : '🐿️';
+    const charName = p.char_type === 'biber' ? 'Beveretta' : 'Squirletta';
+    // Use data attributes to avoid quote escaping issues
     return `<tr>
-      <td style="font-weight:800;">${p.name}</td>
-      <td><span class="team-pill ${teamClass}">${p.team}</span></td>
-      <td>${charIcon} ${p.char_type === 'biber' ? 'Beveretta' : 'Squirletta'}</td>
+      <td style="font-weight:800;">${escHtml(p.name)}</td>
+      <td><span class="team-pill ${teamClass}">${escHtml(p.team)}</span></td>
+      <td>${charIcon} ${charName}</td>
       <td><div class="quest-badges">${questBadges}</div></td>
       <td><span class="sp-badge">${p.total_sp} SP</span></td>
       <td>
         <div class="action-btns">
-          <button class="btn-action btn-edit"   onclick="openEdit(${p.id},'${p.name}','${p.team}','${p.char_type}')">✏️ Edit</button>
-          <button class="btn-action btn-reset"  onclick="openReset(${p.id},'${p.name}')">🔄 Reset</button>
-          <button class="btn-action btn-delete" onclick="openDelete(${p.id},'${p.name}')">🗑️</button>
+          <button class="btn-action btn-edit"
+            data-id="${p.id}" data-name="${escAttr(p.name)}" data-team="${escAttr(p.team)}" data-char="${escAttr(p.char_type)}"
+            onclick="openEditFromBtn(this)">✏️ Edit</button>
+          <button class="btn-action btn-reset"
+            data-id="${p.id}" data-name="${escAttr(p.name)}"
+            onclick="openResetFromBtn(this)">🔄 Reset</button>
+          <button class="btn-action btn-delete"
+            data-id="${p.id}" data-name="${escAttr(p.name)}"
+            onclick="openDeleteFromBtn(this)">🗑️</button>
         </div>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:24px;">Keine Spieler gefunden</td></tr>';
+  }).join('');
 }
+
+function escHtml(s)  { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s)  { return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function openEditFromBtn(btn)   { openEdit(btn.dataset.id, btn.dataset.name, btn.dataset.team, btn.dataset.char); }
+function openResetFromBtn(btn)  { openReset(btn.dataset.id, btn.dataset.name); }
+function openDeleteFromBtn(btn) { openDelete(btn.dataset.id, btn.dataset.name); }
 
 function filterPlayers() {
   const search = document.getElementById('player-search').value.toLowerCase();

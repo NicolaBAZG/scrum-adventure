@@ -2,6 +2,19 @@
 <html lang="de">
 <head>
 <script src="/api-client.js"></script>
+<script>
+// ── RESUME GUARD ─────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  ScrumAdventure.enforceResume('olymp');
+
+  // Sync char/name from localStorage → sessionStorage (for quest compat)
+  var char_type = localStorage.getItem('adventure_char') || sessionStorage.getItem('adventure_char') || 'biber';
+  var name      = localStorage.getItem('adventure_name') || sessionStorage.getItem('adventure_name') || '';
+  sessionStorage.setItem('adventure_char', char_type);
+  sessionStorage.setItem('adventure_name', name);
+});
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Der Scrum Olymp</title>
@@ -400,36 +413,7 @@ html,body{width:100%;min-height:100%;background:var(--night);font-family:'Nunito
 .sparkle{position:fixed;pointer-events:none;z-index:200;animation:sparkFall var(--sd,3s) linear forwards;}
 @keyframes sparkFall{from{transform:translateY(-20px) rotate(0) scale(1);opacity:1;}to{transform:translateY(110vh) rotate(720deg) scale(0.5);opacity:0;}}
 </style>
-<script>
-function spInit(quest){
-  const d=JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  if(!d[quest]) d[quest]={base:100,errors:0};
-  sessionStorage.setItem('adventure_sp',JSON.stringify(d));
-}
-function spAddWrong(quest,count){
-  count=(count===undefined)?1:count;
-  const d=JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  if(!d[quest]) d[quest]={base:100,errors:0};
-  d[quest].errors+=count;
-  sessionStorage.setItem('adventure_sp',JSON.stringify(d));
-}
-function spFinish(quest){
-  spInit(quest);
-  const d=JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  const pts=Math.max(0,d[quest].base-d[quest].errors*10);
-  d[quest].final=pts;
-  sessionStorage.setItem('adventure_sp',JSON.stringify(d));
-  return pts;
-}
-function spTotal(){
-  const d=JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  return Object.values(d).reduce((s,q)=>s+(q.final||0),0);
-}
-function spQuestPoints(quest){
-  const d=JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  return d[quest]?d[quest].final||0:0;
-}
-</script>
+
 </head>
 <body>
 
@@ -734,78 +718,83 @@ function openGate(){
 }
 
 function buildOlymp(){
+  // Read player & progress from localStorage (set by api-client.js)
+  const player   = ScrumAdventure.getPlayer();
+  const progress = ScrumAdventure.getProgress();
+  const pName    = (player && player.name) ? player.name : (localStorage.getItem('adventure_name') || playerName);
+  const pChar    = (player && player.char_type) ? player.char_type : chosenChar;
+  const pTeam    = (player && player.team)      ? player.team      : teamName;
+  const pAvatar  = pChar === 'biber' ? IMG_BIBER : IMG_EICH;
+
   // Set hero card
-  const heroImg = document.getElementById('olymp-hero-img');
+  const heroImg  = document.getElementById('olymp-hero-img');
   const heroName = document.getElementById('olymp-hero-name');
   const heroChar = document.getElementById('olymp-hero-char');
-  if(heroImg){ heroImg.src=avatarSrc; heroImg.alt=avatarName; }
-  if(heroName) heroName.textContent = playerName;
-  if(heroChar) heroChar.textContent = avatarName + ' · ' + teamName;
+  if (heroImg)  { heroImg.src = pAvatar; heroImg.alt = pChar === 'biber' ? 'Beveretta' : 'Squirletta'; }
+  if (heroName) heroName.textContent = pName;
+  if (heroChar) heroChar.textContent = (pChar === 'biber' ? 'Beveretta' : 'Squirletta') + ' · ' + pTeam;
 
-  // SP summary
+  // Build SP breakdown table from localStorage progress
   const quests = [
-    {key:'forest', label:'🌲 Scrum-Baum'},
-    {key:'huette', label:'🏔️ Zollhütte'},
-    {key:'bit',    label:'🏛️ BIT Zollikofen'},
-    {key:'marzili',label:'🍦 Marzili'},
-    {key:'olymp',  label:'⚡ Olymp-Tor'},
+    {key:'forest',  label:'🌲 Scrum-Baum'},
+    {key:'huette',  label:'🏔️ Zollhütte'},
+    {key:'bit',     label:'🏛️ BIT Zollikofen'},
+    {key:'marzili', label:'🍦 Marzili'},
+    {key:'olymp',   label:'⚡ Olymp-Tor'},
   ];
-  const spData = JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  const totalPts = spTotal();
 
-  // Build SP table
   const tbody = document.getElementById('olymp-tbody');
-  if(!tbody) return;
+  if (!tbody) return;
   tbody.innerHTML = '';
 
-  // Header row: SP breakdown
-  quests.forEach(q => {
-    const pts = spData[q.key] ? Math.max(0, spData[q.key].base - (spData[q.key].errors||0)*10) : '—';
-    const errors = spData[q.key] ? spData[q.key].errors||0 : 0;
+  let runningTotal = 0;
+  quests.forEach(function(q) {
+    const row = progress.find(function(p){ return p.quest === q.key; });
+    const errors  = row ? (row.errors || 0) : 0;
+    const pts     = row && row.completed ? (row.final_sp !== null ? row.final_sp : Math.max(0,100-errors*10)) : null;
+    if (pts !== null) runningTotal += pts;
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="font-size:0.9rem;">${q.label}</td>
-      <td style="text-align:center;font-family:'Courier Prime',monospace;font-size:0.8rem;color:var(--dim);">
-        ${errors>0?`<span style="color:var(--red,#f87171)">-${errors*10}</span>`:'✓'}
-      </td>
-      <td style="text-align:right;font-weight:900;font-family:'Courier Prime',monospace;
-        color:${pts==='—'?'var(--dim)':pts>=80?'var(--gold2)':'var(--text)'};">
-        ${pts==='—'?'—':pts+' SP'}
-      </td>`;
+    tr.innerHTML =
+      '<td style="font-size:0.9rem;">' + q.label + '</td>' +
+      '<td style="text-align:center;font-family:\'Courier Prime\',monospace;font-size:0.8rem;color:var(--dim);">' +
+        (errors > 0 ? '<span style="color:var(--red,#f87171)">-' + (errors*10) + '</span>' : '✓') +
+      '</td>' +
+      '<td style="text-align:right;font-weight:900;font-family:\'Courier Prime\',monospace;color:' +
+        (pts === null ? 'var(--dim)' : pts >= 80 ? 'var(--gold2)' : 'var(--text)') + ';">' +
+        (pts === null ? '—' : pts + ' SP') +
+      '</td>';
     tbody.appendChild(tr);
   });
 
   // Total row
   const totalRow = document.createElement('tr');
-  totalRow.style.borderTop = '2px solid rgba(245,158,11,0.4)';
-  totalRow.style.background = 'rgba(245,158,11,0.07)';
-  totalRow.innerHTML = `
-    <td style="font-family:'Cinzel',serif;font-weight:700;font-size:0.85rem;color:var(--gold2);">TOTAL</td>
-    <td></td>
-    <td style="text-align:right;font-family:'Cinzel',serif;font-weight:900;font-size:1.1rem;color:var(--gold2);">
-      ${totalPts} SP
-    </td>`;
+  totalRow.style.borderTop   = '2px solid rgba(245,158,11,0.4)';
+  totalRow.style.background  = 'rgba(245,158,11,0.07)';
+  totalRow.innerHTML =
+    '<td style="font-family:\'Cinzel\',serif;font-weight:700;font-size:0.85rem;color:var(--gold2);">TOTAL</td>' +
+    '<td></td>' +
+    '<td style="text-align:right;font-family:\'Cinzel\',serif;font-weight:900;font-size:1.1rem;color:var(--gold2);">' +
+      runningTotal + ' SP' +
+    '</td>';
   tbody.appendChild(totalRow);
 
-  // Save to leaderboard in sessionStorage
-  const lb = JSON.parse(sessionStorage.getItem('adventure_lb')||'[]');
-  const existingIdx = lb.findIndex(e => e.name===playerName && e.team===teamName);
-  const entry = { name:playerName, team:teamName, char:avatarName, total:totalPts, ts:Date.now() };
-  if(existingIdx>=0) lb[existingIdx]=entry; else lb.push(entry);
-  sessionStorage.setItem('adventure_lb', JSON.stringify(lb));
-
-  // Build team leaderboard
-  buildTeamLeaderboard(lb);
+  // Load server leaderboard for team rankings
+  fetch('/api/leaderboard').then(function(r){ return r.json(); }).then(function(lb) {
+    buildTeamLeaderboard(lb);
+  }).catch(function() {
+    // Offline: show just current player
+    buildTeamLeaderboard([{ name: pName, team: pTeam, char_type: pChar, total_sp: runningTotal, quests_done: 5 }]);
+  });
 
   // Pillars
   const pillars = document.getElementById('olymp-pillars');
-  if(pillars){
-    for(let i=0;i<4;i++){
-      const p=document.createElement('div');
-      p.style.cssText=`position:absolute;bottom:0;width:18px;height:${50+Math.random()*30}%;
-        background:linear-gradient(180deg,rgba(245,158,11,0.08),rgba(245,158,11,0.02));
-        border-left:1px solid rgba(245,158,11,0.1);
-        ${i<2?`left:${5+i*8}%;`:`right:${5+(i-2)*8}%;`}`;
+  if (pillars) {
+    for (var i=0;i<4;i++) {
+      const p = document.createElement('div');
+      p.style.cssText = 'position:absolute;bottom:0;width:18px;height:' + (50+Math.random()*30) + '%;' +
+        'background:linear-gradient(180deg,rgba(245,158,11,0.08),rgba(245,158,11,0.02));' +
+        'border-left:1px solid rgba(245,158,11,0.1);' +
+        (i<2 ? 'left:'+(5+i*8)+'%;' : 'right:'+(5+(i-2)*8)+'%;');
       pillars.appendChild(p);
     }
   }
@@ -814,30 +803,28 @@ function buildOlymp(){
 
 function buildTeamLeaderboard(lb){
   const wrap = document.getElementById('team-lb-wrap');
-  if(!wrap) return;
+  if (!wrap) return;
   wrap.style.display = 'block';
 
+  const medals      = ['gold','silver','bronze'];
+  const medalEmojis = ['🥇','🥈','🥉'];
   const teams = {
-    'Team Suvretta': lb.filter(e=>e.team==='Team Suvretta').sort((a,b)=>b.total-a.total).slice(0,3),
-    'Team Valletta': lb.filter(e=>e.team==='Team Valletta').sort((a,b)=>b.total-a.total).slice(0,3),
+    'Team Suvretta': { cls:'suv', players: lb.filter(function(e){ return e.team==='Team Suvretta'; }).sort(function(a,b){ return b.total_sp-a.total_sp; }).slice(0,3) },
+    'Team Valletta': { cls:'val', players: lb.filter(function(e){ return e.team==='Team Valletta'; }).sort(function(a,b){ return b.total_sp-a.total_sp; }).slice(0,3) },
   };
-  const medals = ['🥇','🥈','🥉'];
-  let html = '';
-  Object.entries(teams).forEach(([tname, members])=>{
-    const color = tname==='Team Suvretta'?'rgba(59,130,246,0.15)':'rgba(245,158,11,0.12)';
-    const border= tname==='Team Suvretta'?'rgba(59,130,246,0.4)':'rgba(245,158,11,0.4)';
-    html += `<div style="flex:1;min-width:220px;background:${color};border:1.5px solid ${border};border-radius:16px;padding:16px 14px;">`;
-    html += `<div style="font-family:'Cinzel',serif;font-size:0.7rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold3);margin-bottom:10px;text-align:center;">${tname}</div>`;
-    if(members.length===0){
-      html += `<div style="font-size:0.8rem;color:var(--dim);text-align:center;font-style:italic;">Noch keine Einträge</div>`;
+
+  var html = '';
+  Object.entries(teams).forEach(function(entry) {
+    var tname = entry[0], t = entry[1];
+    var color  = tname==='Team Suvretta' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.12)';
+    var border = tname==='Team Suvretta' ? 'rgba(59,130,246,0.4)'  : 'rgba(245,158,11,0.4)';
+    html += '<div style="flex:1;min-width:220px;background:'+color+';border:1.5px solid '+border+';border-radius:16px;padding:16px 14px;">';
+    html += '<div style="font-family:Cinzel,serif;font-size:0.7rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold3);margin-bottom:10px;text-align:center;">'+tname+'</div>';
+    if (!t.players.length) {
+      html += '<div style="font-size:0.8rem;color:var(--dim);text-align:center;font-style:italic;">Noch keine Einträge</div>';
     } else {
-      members.forEach((m,i)=>{
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;
-          border-bottom:${i<members.length-1?'1px solid rgba(245,158,11,0.1)':'none'};">
-          <span style="font-size:1.1rem;">${medals[i]||i+1+'.'}</span>
-          <span style="flex:1;font-weight:800;font-size:0.85rem;color:var(--text);">${m.name}</span>
-          <span style="font-family:'Courier Prime',monospace;font-size:0.82rem;color:var(--gold2);font-weight:700;">${m.total} SP</span>
-        </div>`;
+      t.players.forEach(function(p, i) {
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:'+(i<t.players.length-1?'1px solid rgba(245,158,11,0.1)':'none')+';"><span style="font-size:1.1rem;">'+medalEmojis[i]+'</span><span style="flex:1;font-weight:800;font-size:0.85rem;color:var(--text);">'+p.name+'</span><span style="font-family:Courier Prime,monospace;font-size:0.82rem;color:var(--gold2);font-weight:700;">'+p.total_sp+' SP</span></div>';
       });
     }
     html += '</div>';

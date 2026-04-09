@@ -2,33 +2,24 @@
 <html lang="de">
 <head>
 <script src="/api-client.js"></script>
+<script>
+// ── RESUME GUARD ─────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  ScrumAdventure.enforceResume('marzili');
+
+  // Sync char/name from localStorage → sessionStorage (for quest compat)
+  var char_type = localStorage.getItem('adventure_char') || sessionStorage.getItem('adventure_char') || 'biber';
+  var name      = localStorage.getItem('adventure_name') || sessionStorage.getItem('adventure_name') || '';
+  sessionStorage.setItem('adventure_char', char_type);
+  sessionStorage.setItem('adventure_name', name);
+});
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Marzili – Der heisse Scrum Master</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Nunito:wght@600;700;800;900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-<script>
-// ── STORY POINTS ─────────────────────────────
-function spInit(quest){
-  const d=JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  if(!d[quest]) d[quest]={base:100,errors:0};
-  sessionStorage.setItem('adventure_sp',JSON.stringify(d));
-}
-function spAddWrong(quest,count){
-  count=(count===undefined)?1:count;
-  const d=JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  if(!d[quest]) d[quest]={base:100,errors:0};
-  d[quest].errors+=count;
-  sessionStorage.setItem('adventure_sp',JSON.stringify(d));
-}
-function spFinish(quest){
-  spInit(quest);
-  const d=JSON.parse(sessionStorage.getItem('adventure_sp')||'{}');
-  const pts=Math.max(0,d[quest].base-d[quest].errors*10);
-  d[quest].final=pts;
-  sessionStorage.setItem('adventure_sp',JSON.stringify(d));
-  return pts;
-}
-</script>
+
 <style>
 :root {
   --sun:    #f59e0b;

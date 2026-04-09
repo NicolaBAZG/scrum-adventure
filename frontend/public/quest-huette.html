@@ -2,6 +2,19 @@
 <html lang="de">
 <head>
 <script src="/api-client.js"></script>
+<script>
+// ── RESUME GUARD ─────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  ScrumAdventure.enforceResume('huette');
+
+  // Sync char/name from localStorage → sessionStorage (for quest compat)
+  var char_type = localStorage.getItem('adventure_char') || sessionStorage.getItem('adventure_char') || 'biber';
+  var name      = localStorage.getItem('adventure_name') || sessionStorage.getItem('adventure_name') || '';
+  sessionStorage.setItem('adventure_char', char_type);
+  sessionStorage.setItem('adventure_name', name);
+});
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Die Berghütte des Zolls</title>
@@ -393,28 +406,7 @@ html,body { width:100%; min-height:100%; background:var(--sky-top); font-family:
 <script>
 // ── STORY POINTS SYSTEM ──────────────────────────
 // Each quest: 100 SP base, -10 per wrong answer, min 0
-const SP_KEY = 'adventure_sp';
-const SP_ERR = 'adventure_sp_errors';
 
-function spInit(quest){
-  const d = JSON.parse(sessionStorage.getItem(SP_KEY)||'{}');
-  if(!d[quest]) d[quest] = {base:100, errors:0};
-  sessionStorage.setItem(SP_KEY, JSON.stringify(d));
-}
-function spAddWrong(quest, count=1){
-  const d = JSON.parse(sessionStorage.getItem(SP_KEY)||'{}');
-  if(!d[quest]) d[quest]={base:100,errors:0};
-  d[quest].errors += count;
-  sessionStorage.setItem(SP_KEY, JSON.stringify(d));
-}
-function spFinish(quest){
-  spInit(quest);
-  const d = JSON.parse(sessionStorage.getItem(SP_KEY)||'{}');
-  const pts = Math.max(0, d[quest].base - d[quest].errors * 10);
-  d[quest].final = pts;
-  sessionStorage.setItem(SP_KEY, JSON.stringify(d));
-  return pts;
-}
 function spTotal(){
   const d = JSON.parse(sessionStorage.getItem(SP_KEY)||'{}');
   return Object.values(d).reduce((s,q)=> s + (q.final||0), 0);
