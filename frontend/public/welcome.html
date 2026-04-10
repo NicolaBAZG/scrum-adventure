@@ -212,17 +212,17 @@
 </head>
 <body>
 <script>
-// On page load: check if returning player (this tab's active player via sessionStorage)
+// On page load: check if returning player
 (function() {
-  var activeName = sessionStorage.getItem('sa_active_player') || '';
-  if (!activeName) return;
-
+  // Check if there's a current session player
+  var sessionKey = sessionStorage.getItem('sa_current');
+  if (!sessionKey) return;
   var player = null;
-  try { player = JSON.parse(localStorage.getItem('sa_player__' + activeName) || 'null'); } catch {}
+  try { player = JSON.parse(localStorage.getItem(sessionKey + '_player') || 'null'); } catch {}
   if (!player) return;
 
   var progress = [];
-  try { progress = JSON.parse(localStorage.getItem('sa_progress__' + activeName) || '[]'); } catch {}
+  try { progress = JSON.parse(localStorage.getItem(sessionKey + '_progress') || '[]'); } catch {}
   var allDone = ['forest','huette','bit','marzili','olymp'].every(function(q) {
     return progress.find(function(p) { return p.quest === q && p.completed; });
   });
@@ -257,19 +257,8 @@
 })();
 
 function clearPlayer() {
-  var activeName = sessionStorage.getItem('sa_active_player') || '';
-  if (activeName) {
-    localStorage.removeItem('sa_player__' + activeName);
-    localStorage.removeItem('sa_progress__' + activeName);
-  }
-  // Legacy cleanup
-  localStorage.removeItem('sa_player');
-  localStorage.removeItem('sa_progress');
-  localStorage.removeItem('adventure_char');
-  localStorage.removeItem('adventure_name');
-  sessionStorage.removeItem('sa_active_player');
-  sessionStorage.removeItem('adventure_char');
-  sessionStorage.removeItem('adventure_name');
+  // Clear current session only (not other players' data)
+  sessionStorage.removeItem('sa_current');
   var b = document.getElementById('resume-banner');
   if (b) b.remove();
 }
@@ -374,58 +363,49 @@ function clearPlayer() {
   function goStep2() {
     if(!chosenChar) return;
     document.getElementById('step1-card').style.display = 'none';
-    const s2 = document.getElementById('step2-card');
+    var s2 = document.getElementById('step2-card');
     s2.style.display = 'block';
-    const c = charData[chosenChar];
+    var c = charData[chosenChar];
     document.getElementById('step2-char-img').src = c.img;
     document.getElementById('step2-char-img').alt = c.name;
     document.getElementById('step2-char-label').textContent = c.name + ' · ' + c.team;
 
-    const sel = document.getElementById('player-select');
+    var sel = document.getElementById('player-select');
     sel.innerHTML = '<option value="">— Name auswählen —</option>';
     document.getElementById('start-btn').disabled = true;
 
-    const names = NAMES[chosenChar];
+    var names = NAMES[chosenChar];
 
-    // Fetch leaderboard to find completed players
-    // Note: leaderboard only returns fully completed players (quests_done >= 5)
+    // Check leaderboard to show started/completed status
     fetch('/api/leaderboard').then(function(r){ return r.json(); }).then(function(lb) {
-      // Also fetch all players to detect who has started but not finished
-      fetch('/api/players/status').then(function(r2){ return r2.json(); }).catch(function(){ return []; }).then(function(allPlayers) {
-        names.forEach(function(n) {
-          var completed = lb.find(function(e) { return e.name === n && e.team === c.team; });
-          var started   = allPlayers.find(function(e) { return e.name === n && e.team === c.team; });
-          var o = document.createElement('option');
-          if (completed) {
-            // Fully finished – disable
-            o.value = '';
-            o.textContent = n + ' ✓ abgeschlossen';
-            o.disabled = true;
-            o.style.color = '#999';
-            o.title = n + ' hat das Spiel bereits abgeschlossen';
-          } else if (started && started.quests_done > 0) {
-            // In progress – selectable but marked
-            o.value = n;
-            o.textContent = n + ' (hat das Abenteuer begonnen)';
-          } else {
-            // Not started yet
-            o.value = n;
-            o.textContent = n;
-          }
-          o.dataset.originalName = n;
-          sel.appendChild(o);
-        });
+      names.forEach(function(n) {
+        var entry = lb.find(function(e){ return e.name === n && e.team === c.team; });
+        var allDone = entry && parseInt(entry.quests_done) >= 5;
+        var started = entry && parseInt(entry.quests_done) > 0 && !allDone;
+        var label = n;
+        if (allDone)  label += ' ✓ abgeschlossen';
+        else if (started) label += ' (hat begonnen)';
+        var o = document.createElement('option');
+        o.value = allDone ? '' : n;
+        o.textContent = label;
+        if (allDone) {
+          o.disabled = true;
+          o.style.color = '#999';
+          o.title = n + ' hat das Spiel bereits abgeschlossen';
+        }
+        o.dataset.originalName = n;
+        sel.appendChild(o);
       });
     }).catch(function() {
-      // Offline: just show names without completion check
       names.forEach(function(n) {
-        const o = document.createElement('option');
+        var o = document.createElement('option');
         o.value = n; o.textContent = n; sel.appendChild(o);
       });
     });
   }
 
   function goBackStep1() {
+    localStorage.setItem('adventure_name', document.getElementById('player-select').value);
     document.getElementById('step2-card').style.display = 'none';
     document.getElementById('step1-card').style.display = 'block';
   }
@@ -445,11 +425,12 @@ function clearPlayer() {
     document.getElementById('confirm-title').textContent = 'Hallo, ' + name + '! 👋';
     document.getElementById('confirm-sub').textContent = 'Dein Abenteuer wartet schon auf dich…';
     document.getElementById('confirm-badge').innerHTML = c.emoji + ' <strong>' + c.name + '</strong> &nbsp;·&nbsp; ' + c.team;
+    localStorage.setItem('adventure_name', document.getElementById('player-select').value);
     document.getElementById('step2-card').style.display = 'none';
     const cs = document.getElementById('confirm-screen');
     cs.style.display = 'flex'; cs.classList.add('visible');
-    sessionStorage.setItem('adventure_char', chosenChar);
-    sessionStorage.setItem('adventure_name', name);
+    localStorage.setItem('adventure_char', chosenChar);
+    localStorage.setItem('adventure_name', name);
     localStorage.setItem('adventure_char', chosenChar);
     localStorage.setItem('adventure_name', name);
   }
@@ -461,32 +442,36 @@ function clearPlayer() {
   }
 
   function goNext() {
-    var name = sessionStorage.getItem('adventure_name') || localStorage.getItem('adventure_name') || 'Abenteurer';
+    var name = localStorage.getItem('adventure_name') || document.getElementById('player-select').value || 'Abenteurer';
     var team = (chosenChar === 'biber') ? 'Team Suvretta' : 'Team Valletta';
-    var btn = document.getElementById('start-btn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span>⏳</span> Wird geladen…'; }
+    var btn  = document.getElementById('confirm-screen').querySelector('button');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Lade…'; }
 
     ScrumAdventure.login(name, team, chosenChar).then(function(data) {
       var progress = data.progress || [];
-      var quests = ScrumAdventure.QUEST_ORDER;
-      var urls   = ScrumAdventure.QUEST_URLS;
+      var quests   = ['forest','huette','bit','marzili','olymp'];
+      var questUrls = {
+        forest:  '/quest-forest',
+        huette:  '/quest-huette',
+        bit:     '/quest-bit',
+        marzili: '/quest-marzili',
+        olymp:   '/quest-olymp'
+      };
 
-      // Find first incomplete quest
-      var nextQuest = quests.find(function(q) {
-        return !progress.find(function(p) { return p.quest === q && p.completed; });
+      // All done → go to olymp hall of fame
+      var allDone = quests.every(function(q) {
+        return progress.find(function(p) { return p.quest === q && p.completed; });
       });
+      if (allDone) { window.location.href = '/quest-olymp'; return; }
 
-      if (!nextQuest) {
-        // All done → go to hall of fame
-        window.location.href = '/quest-olymp';
-      } else {
-        window.location.href = urls[nextQuest];
+      // Find first incomplete quest → resume
+      var nextQuest = null;
+      for (var i = 0; i < quests.length; i++) {
+        var done = progress.find(function(p) { return p.quest === quests[i] && p.completed; });
+        if (!done) { nextQuest = quests[i]; break; }
       }
-    }).catch(function(err) {
-      console.warn('Server not reachable, offline mode:', err);
-      // Offline fallback: use localStorage
-      localStorage.setItem('adventure_char', chosenChar);
-      localStorage.setItem('adventure_name', name);
+      window.location.href = nextQuest ? questUrls[nextQuest] : '/quest-forest';
+    }).catch(function() {
       window.location.href = '/quest-forest';
     });
   }

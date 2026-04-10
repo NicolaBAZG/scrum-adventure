@@ -6,15 +6,11 @@
 // ── RESUME GUARD ─────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
   ScrumAdventure.enforceResume('forest');
-
-  // Sync char/name from localStorage → sessionStorage (for quest compat)
-  var char_type = localStorage.getItem('adventure_char') || sessionStorage.getItem('adventure_char') || 'biber';
-  var name      = localStorage.getItem('adventure_name') || sessionStorage.getItem('adventure_name') || '';
-  sessionStorage.setItem('adventure_char', char_type);
-  sessionStorage.setItem('adventure_name', name);
-  // Ensure sa_active_player is set so per-player storage keys work correctly
-  if (name && !sessionStorage.getItem('sa_active_player')) {
-    sessionStorage.setItem('sa_active_player', name);
+  // Sync char/name for quest display (reading from sessionStorage via api-client)
+  var player = ScrumAdventure.getPlayer();
+  if (player) {
+    sessionStorage.setItem('adventure_char', player.char_type || 'biber');
+    sessionStorage.setItem('adventure_name', player.name || '');
   }
 });
 </script>
@@ -472,7 +468,7 @@ const CHAR_NAMES = { biber: 'Beveretta', eich: 'Squirletta' };
 
 // Read from URL param or sessionStorage
 const urlParams = new URLSearchParams(window.location.search);
-let chosenAvatar = urlParams.get('char') || sessionStorage.getItem('adventure_char') || 'biber';
+let chosenAvatar = urlParams.get('char') || localStorage.getItem('adventure_char') || 'biber';
 if(chosenAvatar !== 'biber' && chosenAvatar !== 'eich') chosenAvatar = 'biber';
 const avatarSrc  = chosenAvatar === 'biber' ? IMG_BIBER : IMG_EICH;
 const avatarName = CHAR_NAMES[chosenAvatar];
