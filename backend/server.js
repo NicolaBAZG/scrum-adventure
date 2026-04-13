@@ -229,6 +229,16 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
 });
 
 
+
+// POST /api/admin/reset-all  – wipe ALL progress for all players
+app.post('/api/admin/reset-all', requireAdmin, (req, res) => {
+  const db = readDB();
+  const count = db.progress.length;
+  db.progress = [];
+  writeDB(db);
+  res.json({ success: true, cleared: count });
+});
+
 // ── PAGE ROUTES ───────────────────────────────────────────────────────────────
 const PAGES = {
   '/welcome':       'welcome.html',

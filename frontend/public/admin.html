@@ -212,198 +212,219 @@ tr:hover td { background:rgba(255,255,255,0.02); }
   .nav-item { justify-content:center; padding:14px; }
   .main-content { margin-left:60px; padding:20px 16px; }
 }
+
+  /* Teams view */
+  .team-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .team-card-title { font-family:'Cinzel',serif; font-size:0.85rem; font-weight:700; letter-spacing:0.1em; margin-bottom:12px; text-transform:uppercase; }
+  .team-name-list { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; min-height:40px; }
+  .team-player-row { display:flex; align-items:center; gap:8px; padding:7px 10px; background:rgba(255,255,255,0.04); border-radius:8px; }
+  .team-player-row span:first-child { flex:1; }
+  .add-player-row { display:flex; gap:8px; align-items:center; }
+  .btn-add { background:rgba(74,222,128,0.12); border:1px solid rgba(74,222,128,0.3); color:#4ade80; padding:8px 14px; border-radius:8px; cursor:pointer; font-weight:700; font-size:0.82rem; white-space:nowrap; }
+  .btn-add:hover { background:rgba(74,222,128,0.22); }
+  .btn-danger { transition:all 0.2s; }
+  .btn-danger:hover { background:rgba(239,68,68,0.22) !important; }
 </style>
 </head>
+
 <body>
 
 <!-- ═══ LOGIN ═══ -->
-<div id="login-screen">
+<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);">
   <div class="login-card">
     <div class="login-title">🎮 Spielleiter-Tool</div>
     <div class="login-sub">Scrum Adventure — Admin Panel</div>
-    <div class="form-group">
-      <label>Benutzername</label>
-      <input type="text" id="login-user" value="admin" placeholder="admin">
-    </div>
-    <div class="form-group">
-      <label>Passwort</label>
-      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
+    <label class="input-label">Benutzername</label>
+    <input type="text" id="login-user" value="admin" placeholder="admin">
+    <label class="input-label">Passwort</label>
+    <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="btn-primary" onclick="doLogin()">🔐 Einloggen</button>
     <div class="login-err" id="login-err">Falsches Passwort oder Benutzername.</div>
   </div>
 </div>
 
 <!-- ═══ APP ═══ -->
-<div id="app">
-  <div class="sidebar">
-    <div class="sidebar-logo">
-      🌲 Scrum Adventure<span>Spielleiter-Panel</span>
+<div id="app" style="display:none;">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">🌲 Admin</div>
+    <div class="nav-item active" onclick="showView('players')" title="Spieler">
+      <span>👥</span><span>Spieler</span>
     </div>
-    <div class="nav-item active" onclick="showView('overview')" id="nav-overview">
-      <span class="nav-icon">📊</span><span>Übersicht</span>
+    <div class="nav-item" onclick="showView('stats')" title="Statistiken">
+      <span>📊</span><span>Statistiken</span>
     </div>
-    <div class="nav-item" onclick="showView('players')" id="nav-players">
-      <span class="nav-icon">👥</span><span>Spieler</span>
-    </div>
-    <div class="nav-item" onclick="showView('leaderboard')" id="nav-leaderboard">
-      <span class="nav-icon">🏆</span><span>Rangliste</span>
+    <div class="nav-item" onclick="showView('teams')" title="Teams">
+      <span>⚙️</span><span>Teams</span>
     </div>
     <div class="sidebar-logout">
-      <button class="btn-logout" onclick="doLogout()">🚪 Ausloggen</button>
+      <button class="btn-logout" onclick="doLogout()">🚪 Logout</button>
     </div>
-  </div>
+  </nav>
 
-  <div class="main-content">
+  <!-- Main -->
+  <main class="main-content">
 
-    <!-- ── OVERVIEW ── -->
-    <div class="view active" id="view-overview">
-      <div class="page-title">📊 Übersicht</div>
-      <div class="page-sub">Spielstand auf einen Blick</div>
-      <div class="stats-grid" id="stats-grid">
-        <div class="loading">Lade…</div>
+    <!-- ── PLAYERS VIEW ── -->
+    <div id="view-players" class="view active">
+      <div class="view-header">
+        <h1 id="player-count">Spieler</h1>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <select id="filter-team" class="filter-select" onchange="filterPlayers()">
+            <option value="">Alle Teams</option>
+            <option value="Team Suvretta">Team Suvretta</option>
+            <option value="Team Valletta">Team Valletta</option>
+          </select>
+          <button class="btn-danger" onclick="openResetAll()" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);color:#f87171;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;">
+            🗑️ Alle Spielstände löschen
+          </button>
+        </div>
       </div>
-      <div class="table-wrap">
-        <div class="table-header"><div class="table-header-title">Quest-Abschlüsse</div></div>
-        <table>
-          <thead><tr><th>Quest</th><th>Abgeschlossen</th></tr></thead>
-          <tbody id="quest-stats-body"></tbody>
-        </table>
-      </div>
+
+      <div id="players-loading" style="color:var(--dim);padding:24px;">Lade Spieler…</div>
+      <table id="players-table" style="display:none;">
+        <thead>
+          <tr>
+            <th>Name</th><th>Team</th><th>Charakter</th><th>Quests</th><th>SP</th><th>Aktionen</th>
+          </tr>
+        </thead>
+        <tbody id="players-body"></tbody>
+      </table>
     </div>
 
-    <!-- ── PLAYERS ── -->
-    <div class="view" id="view-players">
-      <div class="page-title">👥 Spieler verwalten</div>
-      <div class="page-sub">Spielstände zurücksetzen, Teams ändern, Spieler löschen</div>
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-header-title" id="player-count">Spieler</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <input class="search-box" id="player-search" placeholder="🔍 Suchen…" oninput="filterPlayers()">
-            <select class="filter-select" id="team-filter" onchange="filterPlayers()">
-              <option value="">Alle Teams</option>
-              <option value="Team Suvretta">Team Suvretta</option>
-              <option value="Team Valletta">Team Valletta</option>
-            </select>
+    <!-- ── STATS VIEW ── -->
+    <div id="view-stats" class="view">
+      <div class="view-header"><h1>Statistiken</h1></div>
+      <div id="stats-content" style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));"></div>
+    </div>
+
+    <!-- ── TEAMS VIEW ── -->
+    <div id="view-teams" class="view">
+      <div class="view-header"><h1>Teams verwalten</h1></div>
+      <div style="display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));">
+
+        <!-- Team Suvretta -->
+        <div class="team-card">
+          <div class="team-card-title" style="color:rgba(96,165,250,0.9);">🦫 Team Suvretta</div>
+          <div id="team-suvretta-list" class="team-name-list"></div>
+          <div class="add-player-row">
+            <input type="text" id="add-suvretta-name" placeholder="Neuer Name…" class="filter-select" style="flex:1;">
+            <button class="btn-add" onclick="addPlayer('Team Suvretta','biber','add-suvretta-name')">+ Hinzufügen</button>
           </div>
         </div>
-        <div id="players-loading" class="loading">Lade Spieler…</div>
-        <table id="players-table" style="display:none;">
-          <thead>
-            <tr>
-              <th>Name</th><th>Team</th><th>Begleiter</th>
-              <th>Quests</th><th>Total SP</th><th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="players-body"></tbody>
-        </table>
+
+        <!-- Team Valletta -->
+        <div class="team-card">
+          <div class="team-card-title" style="color:rgba(251,191,36,0.9);">🐿️ Team Valletta</div>
+          <div id="team-valletta-list" class="team-name-list"></div>
+          <div class="add-player-row">
+            <input type="text" id="add-valletta-name" placeholder="Neuer Name…" class="filter-select" style="flex:1;">
+            <button class="btn-add" onclick="addPlayer('Team Valletta','eich','add-valletta-name')">+ Hinzufügen</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:12px 16px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:0.8rem;color:var(--dim);">
+        ℹ️ Namen hier hinzufügen/entfernen erscheint sofort in der Spieler-Auswahl auf der Welcome-Seite.
+        Spieler ohne Spielstand können direkt gelöscht werden.
       </div>
     </div>
 
-    <!-- ── LEADERBOARD ── -->
-    <div class="view" id="view-leaderboard">
-      <div class="page-title">🏆 Rangliste</div>
-      <div class="page-sub">Top 3 pro Team nach Story Points</div>
-      <div class="lb-grid" id="lb-grid"><div class="loading">Lade…</div></div>
-    </div>
-
-  </div>
+  </main>
 </div>
 
 <!-- ═══ MODALS ═══ -->
-<!-- Edit Player -->
-<div class="modal-overlay" id="modal-edit">
-  <div class="modal">
-    <div class="modal-title">✏️ Spieler bearbeiten</div>
-    <div class="modal-sub">Name, Team und Begleiter ändern</div>
-    <input type="hidden" id="edit-id">
-    <div class="form-group" style="margin-bottom:12px;">
-      <label>Name</label>
-      <input type="text" id="edit-name" class="search-box" style="width:100%;padding:10px 12px;">
-    </div>
-    <div class="form-group" style="margin-bottom:12px;">
-      <label>Team</label>
-      <select id="edit-team" class="filter-select" style="width:100%;padding:10px 12px;">
-        <option value="Team Suvretta">Team Suvretta</option>
-        <option value="Team Valletta">Team Valletta</option>
-      </select>
-    </div>
-    <div class="form-group" style="margin-bottom:0;">
-      <label>Begleiter</label>
-      <select id="edit-char" class="filter-select" style="width:100%;padding:10px 12px;">
-        <option value="biber">🦫 Beveretta (Suvretta)</option>
-        <option value="eich">🐿️ Squirletta (Valletta)</option>
-      </select>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal('modal-edit')">Abbrechen</button>
-      <button class="btn-confirm ok" onclick="saveEdit()">Speichern</button>
-    </div>
-  </div>
-</div>
 
-<!-- Reset Progress -->
+<!-- Reset Player -->
 <div class="modal-overlay" id="modal-reset">
-  <div class="modal">
-    <div class="modal-title">🔄 Spielstand zurücksetzen</div>
+  <div class="modal-card">
+    <div class="modal-title">🔄 Zurücksetzen</div>
     <div class="modal-sub" id="reset-sub">Was soll zurückgesetzt werden?</div>
     <input type="hidden" id="reset-id">
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px;">
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:10px;">
+    <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="radio" name="reset-type" value="all" checked> <span>Gesamten Spielstand löschen (alle Quests)</span>
       </label>
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:10px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="radio" name="reset-type" value="quest"> <span>Einzelnen Quest zurücksetzen:</span>
         <select id="reset-quest-select" class="filter-select" style="flex:1;">
           <option value="forest">🌲 Scrum-Baum</option>
           <option value="huette">🏔️ Zollhütte</option>
           <option value="bit">🏛️ BIT Zollikofen</option>
           <option value="marzili">🍦 Marzili</option>
-          <option value="olymp">⚡ Olymp-Tor</option>
+          <option value="olymp">⚡ Scrum Olymp</option>
         </select>
       </label>
     </div>
-    <div class="modal-footer">
+    <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-reset')">Abbrechen</button>
       <button class="btn-confirm warn" onclick="confirmReset()">🔄 Zurücksetzen</button>
     </div>
   </div>
 </div>
 
+<!-- Reset All -->
+<div class="modal-overlay" id="modal-reset-all">
+  <div class="modal-card">
+    <div class="modal-title">⚠️ Alle Spielstände löschen</div>
+    <div class="modal-sub">Alle Fortschritte aller Spieler werden unwiderruflich gelöscht.<br>Die Spieler-Accounts bleiben erhalten.</div>
+    <div style="margin:14px 0;padding:12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#fca5a5;font-size:0.85rem;">
+      Zur Bestätigung "RESET" eingeben:
+      <input type="text" id="reset-all-confirm" placeholder="RESET" class="filter-select" style="margin-top:8px;width:100%;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-reset-all')">Abbrechen</button>
+      <button class="btn-confirm" style="background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.5);color:#f87171;" onclick="confirmResetAll()">🗑️ Alles löschen</button>
+    </div>
+  </div>
+</div>
+
 <!-- Delete Player -->
 <div class="modal-overlay" id="modal-delete">
-  <div class="modal">
+  <div class="modal-card">
     <div class="modal-title">🗑️ Spieler löschen</div>
-    <div class="modal-sub" id="delete-sub">Wirklich löschen?</div>
+    <div class="modal-sub" id="delete-sub">Spieler wirklich löschen?</div>
     <input type="hidden" id="delete-id">
-    <p style="font-size:0.85rem;color:var(--dim);line-height:1.6;">
-      Der Spieler und alle zugehörigen Fortschrittsdaten werden dauerhaft gelöscht.<br>
-      Diese Aktion kann nicht rückgängig gemacht werden.
-    </p>
-    <div class="modal-footer">
+    <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-delete')">Abbrechen</button>
-      <button class="btn-confirm danger" onclick="confirmDelete()">🗑️ Löschen</button>
+      <button class="btn-confirm" onclick="confirmDelete()">🗑️ Löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Player -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal-card">
+    <div class="modal-title">✏️ Spieler bearbeiten</div>
+    <input type="hidden" id="edit-id">
+    <label class="input-label">Name</label>
+    <input type="text" id="edit-name" class="filter-select" style="width:100%;margin-bottom:10px;">
+    <label class="input-label">Team</label>
+    <select id="edit-team" class="filter-select" style="width:100%;margin-bottom:10px;">
+      <option value="Team Suvretta">Team Suvretta</option>
+      <option value="Team Valletta">Team Valletta</option>
+    </select>
+    <label class="input-label">Charakter</label>
+    <select id="edit-char" class="filter-select" style="width:100%;margin-bottom:10px;">
+      <option value="biber">🦫 Beveretta</option>
+      <option value="eich">🐿️ Squirletta</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-edit')">Abbrechen</button>
+      <button class="btn-confirm" onclick="confirmEdit()">💾 Speichern</button>
     </div>
   </div>
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toast"></div>
+<div id="toast" class="toast"></div>
 
 <script>
 const API = '/api';
 let token = sessionStorage.getItem('admin_token') || '';
 let allPlayers = [];
 
-// ── TOAST ─────────────────────────────────────────────────────────────────
-function showToast(msg, type='ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast show ' + type;
-  setTimeout(() => t.className = 'toast', 3000);
-}
-
-// ── AUTH ──────────────────────────────────────────────────────────────────
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 async function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
@@ -431,59 +452,49 @@ function doLogout() {
   document.getElementById('login-screen').style.display = 'flex';
 }
 
-// Auto-login if token stored
 if (token) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   loadAll();
 }
 
-// ── NAVIGATION ────────────────────────────────────────────────────────────
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
-  document.getElementById('nav-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item')[['players','stats','teams'].indexOf(name)].classList.add('active');
+  if (name === 'teams') loadTeams();
 }
 
-// ── LOAD ALL DATA ─────────────────────────────────────────────────────────
+// ── LOAD ALL ──────────────────────────────────────────────────────────────────
 async function loadAll() {
-  await Promise.all([loadStats(), loadPlayers(), loadLeaderboard()]);
+  await Promise.all([loadStats(), loadPlayers()]);
 }
 
-// ── STATS ─────────────────────────────────────────────────────────────────
+// ── STATS ─────────────────────────────────────────────────────────────────────
 async function loadStats() {
   try {
     const resp = await fetch(API + '/admin/stats', { headers:{'Authorization':'Bearer '+token} });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
-
-    const grid = document.getElementById('stats-grid');
-    grid.innerHTML = `
-      <div class="stat-card"><div class="stat-num">${data.total_players}</div><div class="stat-label">Spieler Total</div></div>
-      ${data.by_team.map(t => `
-        <div class="stat-card">
-          <div class="stat-num" style="color:${t.team.includes('Suv')?'#93c5fd':'#fde68a'}">${t.count}</div>
-          <div class="stat-label">${t.team}</div>
-        </div>`).join('')}
-    `;
-
-    const questNames = { forest:'🌲 Scrum-Baum', huette:'🏔️ Zollhütte', bit:'🏛️ BIT', marzili:'🍦 Marzili', olymp:'⚡ Olymp' };
-    const tbody = document.getElementById('quest-stats-body');
-    tbody.innerHTML = data.completions.map(c => `
-      <tr>
-        <td>${questNames[c.quest] || c.quest}</td>
-        <td><span style="font-weight:800;color:var(--green);">${c.done}</span> Spieler</td>
-      </tr>`).join('') || '<tr><td colspan="2" style="color:var(--dim);text-align:center;">Noch keine Daten</td></tr>';
+    if (!resp.ok) return;
+    const s = await resp.json();
+    const el = document.getElementById('stats-content');
+    const teams = (s.by_team||[]).map(t =>
+      `<div class="stat-card"><div class="stat-num">${t.count}</div><div class="stat-label">${t.team}</div></div>`
+    ).join('');
+    const quests = (s.completions||[]).map(q =>
+      `<div class="stat-card"><div class="stat-num">${q.done}</div><div class="stat-label">${q.quest}</div></div>`
+    ).join('');
+    el.innerHTML = `<div class="stat-card"><div class="stat-num">${s.total_players}</div><div class="stat-label">Spieler gesamt</div></div>${teams}${quests}`;
   } catch(e) { console.error(e); }
 }
 
-// ── PLAYERS ───────────────────────────────────────────────────────────────
+// ── PLAYERS ───────────────────────────────────────────────────────────────────
 async function loadPlayers() {
   const loading = document.getElementById('players-loading');
+  const table   = document.getElementById('players-table');
   if (loading) loading.style.display = 'block';
-  const table = document.getElementById('players-table');
-  if (table) table.style.display = 'none';
+  if (table)   table.style.display   = 'none';
   try {
     const resp = await fetch(API + '/admin/players', { headers:{'Authorization':'Bearer '+token} });
     if (!resp.ok) {
@@ -491,11 +502,17 @@ async function loadPlayers() {
       throw new Error(err.error || resp.statusText);
     }
     allPlayers = await resp.json();
-    renderPlayers(allPlayers);
+    filterPlayers();
   } catch(e) {
-    console.error('loadPlayers error:', e);
-    if (loading) { loading.style.display = 'block'; loading.textContent = 'Fehler: ' + e.message; }
+    console.error('loadPlayers:', e);
+    if (loading) { loading.style.display='block'; loading.textContent='Fehler: '+e.message; }
   }
+}
+
+function filterPlayers() {
+  const team = document.getElementById('filter-team').value;
+  const filtered = team ? allPlayers.filter(p => p.team === team) : allPlayers;
+  renderPlayers(filtered);
 }
 
 function renderPlayers(players) {
@@ -527,7 +544,6 @@ function renderPlayers(players) {
     }).join('');
     const charIcon = p.char_type === 'biber' ? '🦫' : '🐿️';
     const charName = p.char_type === 'biber' ? 'Beveretta' : 'Squirletta';
-    // Use data attributes to avoid quote escaping issues
     return `<tr>
       <td style="font-weight:800;">${escHtml(p.name)}</td>
       <td><span class="team-pill ${teamClass}">${escHtml(p.team)}</span></td>
@@ -558,46 +574,12 @@ function openEditFromBtn(btn)   { openEdit(btn.dataset.id, btn.dataset.name, btn
 function openResetFromBtn(btn)  { openReset(btn.dataset.id, btn.dataset.name); }
 function openDeleteFromBtn(btn) { openDelete(btn.dataset.id, btn.dataset.name); }
 
-function filterPlayers() {
-  const search = document.getElementById('player-search').value.toLowerCase();
-  const team   = document.getElementById('team-filter').value;
-  const filtered = allPlayers.filter(p =>
-    (!search || p.name.toLowerCase().includes(search)) &&
-    (!team   || p.team === team)
-  );
-  renderPlayers(filtered);
-}
-
-// ── MODALS ────────────────────────────────────────────────────────────────
-function openEdit(id, name, team, char_type) {
-  document.getElementById('edit-id').value = id;
-  document.getElementById('edit-name').value = name;
-  document.getElementById('edit-team').value = team;
-  document.getElementById('edit-char').value = char_type;
-  document.getElementById('modal-edit').classList.add('open');
-}
-
-async function saveEdit() {
-  const id = document.getElementById('edit-id').value;
-  const name = document.getElementById('edit-name').value.trim();
-  const team = document.getElementById('edit-team').value;
-  const char_type = document.getElementById('edit-char').value;
-  try {
-    const resp = await fetch(`${API}/admin/players/${id}`, {
-      method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body: JSON.stringify({ name, team, char_type })
-    });
-    if (!resp.ok) throw new Error();
-    closeModal('modal-edit');
-    showToast('✅ Spieler gespeichert');
-    loadAll();
-  } catch { showToast('❌ Fehler beim Speichern','err'); }
-}
-
+// ── RESET PLAYER ──────────────────────────────────────────────────────────────
 function openReset(id, name) {
   document.getElementById('reset-id').value = id;
   document.getElementById('reset-sub').textContent = `Spielstand für "${name}" zurücksetzen`;
-  document.getElementById('modal-reset').classList.add('open');
+  document.querySelector('input[name="reset-type"][value="all"]').checked = true;
+  openModal('modal-reset');
 }
 
 async function confirmReset() {
@@ -612,14 +594,66 @@ async function confirmReset() {
     if (!resp.ok) throw new Error();
     closeModal('modal-reset');
     showToast('🔄 Spielstand zurückgesetzt');
-    loadAll();
+    loadPlayers();
   } catch { showToast('❌ Fehler beim Zurücksetzen','err'); }
 }
 
+// ── RESET ALL ─────────────────────────────────────────────────────────────────
+function openResetAll() {
+  document.getElementById('reset-all-confirm').value = '';
+  openModal('modal-reset-all');
+}
+
+async function confirmResetAll() {
+  const val = document.getElementById('reset-all-confirm').value.trim();
+  if (val !== 'RESET') {
+    showToast('❌ Bitte "RESET" eingeben zur Bestätigung', 'err');
+    return;
+  }
+  try {
+    const resp = await fetch(`${API}/admin/reset-all`, {
+      method:'POST', headers:{'Authorization':'Bearer '+token}
+    });
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    closeModal('modal-reset-all');
+    showToast(`🗑️ ${data.cleared} Spielstände gelöscht`);
+    loadPlayers();
+  } catch { showToast('❌ Fehler beim Löschen','err'); }
+}
+
+// ── EDIT PLAYER ───────────────────────────────────────────────────────────────
+function openEdit(id, name, team, char_type) {
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = name;
+  document.getElementById('edit-team').value = team;
+  document.getElementById('edit-char').value = char_type;
+  openModal('modal-edit');
+}
+
+async function confirmEdit() {
+  const id        = document.getElementById('edit-id').value;
+  const name      = document.getElementById('edit-name').value.trim();
+  const team      = document.getElementById('edit-team').value;
+  const char_type = document.getElementById('edit-char').value;
+  if (!name) { showToast('❌ Name darf nicht leer sein','err'); return; }
+  try {
+    const resp = await fetch(`${API}/admin/players/${id}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ name, team, char_type })
+    });
+    if (!resp.ok) throw new Error();
+    closeModal('modal-edit');
+    showToast('✅ Gespeichert');
+    loadPlayers();
+  } catch { showToast('❌ Fehler beim Speichern','err'); }
+}
+
+// ── DELETE PLAYER ─────────────────────────────────────────────────────────────
 function openDelete(id, name) {
   document.getElementById('delete-id').value = id;
-  document.getElementById('delete-sub').textContent = `Spieler "${name}" wirklich löschen?`;
-  document.getElementById('modal-delete').classList.add('open');
+  document.getElementById('delete-sub').textContent = `Spieler "${name}" wirklich löschen? Alle Spielstände werden entfernt.`;
+  openModal('modal-delete');
 }
 
 async function confirmDelete() {
@@ -631,44 +665,69 @@ async function confirmDelete() {
     if (!resp.ok) throw new Error();
     closeModal('modal-delete');
     showToast('🗑️ Spieler gelöscht');
-    loadAll();
+    loadPlayers();
   } catch { showToast('❌ Fehler beim Löschen','err'); }
 }
 
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+// ── TEAMS ─────────────────────────────────────────────────────────────────────
+function loadTeams() {
+  renderTeamList('Team Suvretta', 'team-suvretta-list');
+  renderTeamList('Team Valletta', 'team-valletta-list');
 }
+
+function renderTeamList(team, elId) {
+  const el = document.getElementById(elId);
+  const players = allPlayers.filter(p => p.team === team);
+  if (!players.length) {
+    el.innerHTML = '<div style="color:var(--dim);font-size:0.8rem;padding:8px 0;">Keine Spieler</div>';
+    return;
+  }
+  el.innerHTML = players.map(p => {
+    const questsDone = p.quests_done || 0;
+    const status = questsDone >= 5 ? '✓ Abgeschlossen' : questsDone > 0 ? `Quest ${questsDone}/5` : 'Noch nicht gespielt';
+    const statusColor = questsDone >= 5 ? '#4ade80' : questsDone > 0 ? '#fde68a' : 'var(--dim)';
+    return `<div class="team-player-row">
+      <span style="font-weight:700;">${escHtml(p.name)}</span>
+      <span style="font-size:0.75rem;color:${statusColor};">${status}</span>
+      <button class="btn-action btn-delete" style="padding:4px 8px;font-size:0.75rem;"
+        data-id="${p.id}" data-name="${escAttr(p.name)}"
+        onclick="openDeleteFromBtn(this)">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+async function addPlayer(team, char_type, inputId) {
+  const input = document.getElementById(inputId);
+  const name = input.value.trim();
+  if (!name) { showToast('❌ Bitte Namen eingeben','err'); return; }
+  try {
+    const resp = await fetch(API + '/players/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, team, char_type })
+    });
+    if (!resp.ok) throw new Error();
+    input.value = '';
+    showToast('✅ ' + name + ' hinzugefügt');
+    await loadPlayers();
+    loadTeams();
+  } catch { showToast('❌ Fehler beim Hinzufügen','err'); }
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
+  m.addEventListener('click', function(e) { if (e.target === m) m.classList.remove('open'); });
 });
 
-// ── LEADERBOARD ───────────────────────────────────────────────────────────
-async function loadLeaderboard() {
-  try {
-    const resp = await fetch(API + '/leaderboard');
-    const all  = await resp.json();
-    const grid = document.getElementById('lb-grid');
-    const medals = ['gold','silver','bronze'];
-    const medalsEmoji = ['🥇','🥈','🥉'];
-
-    const teams = {
-      'Team Suvretta': { cls:'suv', players: all.filter(p=>p.team==='Team Suvretta').slice(0,3) },
-      'Team Valletta': { cls:'val', players: all.filter(p=>p.team==='Team Valletta').slice(0,3) },
-    };
-
-    grid.innerHTML = Object.entries(teams).map(([name, t]) => `
-      <div class="lb-team-card">
-        <div class="lb-team-header ${t.cls}">${name}</div>
-        ${t.players.length ? t.players.map((p,i) => `
-          <div class="lb-row">
-            <div class="lb-rank ${medals[i]||''}">${medalsEmoji[i]||i+1}</div>
-            <div style="flex:1;font-weight:800;">${p.name}</div>
-            <div style="font-family:'Courier Prime',monospace;font-weight:700;color:var(--gold);">${p.total_sp} SP</div>
-          </div>`).join('') :
-          '<div style="padding:16px;color:var(--dim);font-size:0.82rem;text-align:center;">Noch keine Einträge</div>'
-        }
-      </div>`).join('');
-  } catch(e) { console.error(e); }
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'err' ? ' err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 </script>
 </body>
