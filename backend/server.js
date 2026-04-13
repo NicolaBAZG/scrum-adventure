@@ -17,10 +17,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'scrumadventure2025';
 // ══════════════════════════════════════════════════════════════════════════════
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'db.json');
 
+const DEFAULT_ROSTER = {
+  'Team Suvretta': ['Simon','Michel','Andrei','Yanis','Sebi','Cedric','Leo','Philipp','Cristina','Joel'],
+  'Team Valletta': ['Oli','Roger','Piotr','Vino','Liva','Bizhan','Lino','Koray','Philipp','Rosalie','Sathya','Basil']
+};
+
 const EMPTY_DB = {
   players: [],      // { id, name, team, char_type, created_at, updated_at }
   progress: [],     // { id, player_id, quest, errors, completed, final_sp, completed_at }
   admins: [],       // { id, username, password_hash }
+  roster: JSON.parse(JSON.stringify(DEFAULT_ROSTER)), // team name lists
   _nextId: { players: 1, progress: 1, admins: 1 }
 };
 
@@ -237,6 +243,43 @@ app.post('/api/admin/reset-all', requireAdmin, (req, res) => {
   db.progress = [];
   writeDB(db);
   res.json({ success: true, cleared: count });
+});
+
+
+// ── ROSTER ROUTES (team name lists) ─────────────────────────────────────────
+
+// GET /api/roster  – get all team name lists (public, no auth)
+app.get('/api/roster', (req, res) => {
+  const db = readDB();
+  const roster = db.roster || JSON.parse(JSON.stringify(DEFAULT_ROSTER));
+  res.json(roster);
+});
+
+// POST /api/admin/roster/:team  – add a name to a team
+app.post('/api/admin/roster/:team', requireAdmin, (req, res) => {
+  const db   = readDB();
+  const team = decodeURIComponent(req.params.team);
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
+  if (!db.roster) db.roster = JSON.parse(JSON.stringify(DEFAULT_ROSTER));
+  if (!db.roster[team]) db.roster[team] = [];
+  const trimmed = name.trim();
+  if (db.roster[team].includes(trimmed)) return res.status(409).json({ error: 'already exists' });
+  db.roster[team].push(trimmed);
+  writeDB(db);
+  res.json({ success: true, roster: db.roster[team] });
+});
+
+// DELETE /api/admin/roster/:team/:name  – remove a name from a team
+app.delete('/api/admin/roster/:team/:name', requireAdmin, (req, res) => {
+  const db   = readDB();
+  const team = decodeURIComponent(req.params.team);
+  const name = decodeURIComponent(req.params.name);
+  if (!db.roster) db.roster = JSON.parse(JSON.stringify(DEFAULT_ROSTER));
+  if (!db.roster[team]) return res.status(404).json({ error: 'team not found' });
+  db.roster[team] = db.roster[team].filter(n => n !== name);
+  writeDB(db);
+  res.json({ success: true, roster: db.roster[team] });
 });
 
 // ── PAGE ROUTES ───────────────────────────────────────────────────────────────

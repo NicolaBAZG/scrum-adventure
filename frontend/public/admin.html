@@ -51,6 +51,13 @@ html, body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-
 }
 .btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(59,130,246,0.3); }
 .login-err { color:var(--red); font-size:0.82rem; margin-top:8px; display:none; }
+.input-label { display:block; font-size:0.75rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--dim); margin-bottom:6px; margin-top:14px; }
+.login-card input[type="text"], .login-card input[type="password"] {
+  width:100%; padding:12px 14px; border-radius:12px; margin-bottom:4px;
+  background:rgba(0,0,0,0.3); border:1.5px solid var(--border); color:var(--text);
+  font-family:'Nunito',sans-serif; font-size:0.95rem; outline:none; transition:border 0.2s;
+}
+.login-card input[type="text"]:focus, .login-card input[type="password"]:focus { border-color:var(--blue); }
 
 /* ── APP ── */
 #app { display:none; min-height:100vh; }
@@ -670,30 +677,54 @@ async function confirmDelete() {
 }
 
 // ── TEAMS ─────────────────────────────────────────────────────────────────────
-function loadTeams() {
+let rosterData = {};
+
+async function loadTeams() {
+  try {
+    const resp = await fetch('/api/roster');
+    rosterData = await resp.json();
+  } catch(e) {
+    rosterData = { 'Team Suvretta': [], 'Team Valletta': [] };
+  }
   renderTeamList('Team Suvretta', 'team-suvretta-list');
   renderTeamList('Team Valletta', 'team-valletta-list');
 }
 
 function renderTeamList(team, elId) {
   const el = document.getElementById(elId);
-  const players = allPlayers.filter(p => p.team === team);
-  if (!players.length) {
+  const names = (rosterData[team] || []);
+  if (!names.length) {
     el.innerHTML = '<div style="color:var(--dim);font-size:0.8rem;padding:8px 0;">Keine Spieler</div>';
     return;
   }
-  el.innerHTML = players.map(p => {
-    const questsDone = p.quests_done || 0;
+  el.innerHTML = names.map(name => {
+    // Find player data if they have a game account
+    const player = allPlayers.find(p => p.name === name && p.team === team);
+    const questsDone = player ? (player.quests_done || 0) : 0;
     const status = questsDone >= 5 ? '✓ Abgeschlossen' : questsDone > 0 ? `Quest ${questsDone}/5` : 'Noch nicht gespielt';
     const statusColor = questsDone >= 5 ? '#4ade80' : questsDone > 0 ? '#fde68a' : 'var(--dim)';
     return `<div class="team-player-row">
-      <span style="font-weight:700;">${escHtml(p.name)}</span>
+      <span style="font-weight:700;">${escHtml(name)}</span>
       <span style="font-size:0.75rem;color:${statusColor};">${status}</span>
       <button class="btn-action btn-delete" style="padding:4px 8px;font-size:0.75rem;"
-        data-id="${p.id}" data-name="${escAttr(p.name)}"
-        onclick="openDeleteFromBtn(this)">🗑️</button>
+        data-team="${escAttr(team)}" data-name="${escAttr(name)}"
+        onclick="removeFromRoster(this)">🗑️ Entfernen</button>
     </div>`;
   }).join('');
+}
+
+async function removeFromRoster(btn) {
+  const team = btn.dataset.team;
+  const name = btn.dataset.name;
+  if (!confirm(`"${name}" aus ${team} entfernen? (Spielstand bleibt erhalten)`)) return;
+  try {
+    const resp = await fetch(`${API}/admin/roster/${encodeURIComponent(team)}/${encodeURIComponent(name)}`, {
+      method:'DELETE', headers:{'Authorization':'Bearer '+token}
+    });
+    if (!resp.ok) throw new Error();
+    showToast(`🗑️ ${name} aus Roster entfernt`);
+    await loadTeams();
+  } catch { showToast('❌ Fehler','err'); }
 }
 
 async function addPlayer(team, char_type, inputId) {
@@ -701,16 +732,16 @@ async function addPlayer(team, char_type, inputId) {
   const name = input.value.trim();
   if (!name) { showToast('❌ Bitte Namen eingeben','err'); return; }
   try {
-    const resp = await fetch(API + '/players/login', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name, team, char_type })
+    const resp = await fetch(`${API}/admin/roster/${encodeURIComponent(team)}`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ name })
     });
+    if (resp.status === 409) { showToast('⚠️ Name bereits vorhanden','err'); return; }
     if (!resp.ok) throw new Error();
     input.value = '';
-    showToast('✅ ' + name + ' hinzugefügt');
-    await loadPlayers();
-    loadTeams();
-  } catch { showToast('❌ Fehler beim Hinzufügen','err'); }
+    showToast(`✅ ${name} zu ${team} hinzugefügt`);
+    await loadTeams();
+  } catch(e) { showToast('❌ Fehler: '+e.message,'err'); }
 }
 
 // ── MODAL HELPERS ─────────────────────────────────────────────────────────────
